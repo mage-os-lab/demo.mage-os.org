@@ -1,0 +1,88 @@
+name: Deploy to Server
+
+# SSH Setup Instructions:
+# 1. Generate SSH key pair: ssh-keygen -t ed25519 -C "github-actions"
+# 2. Add public key to server: ~/.ssh/authorized_keys
+# 3. Add private key to GitHub secrets as SSH_PRIVATE_KEY
+# 4. Set SSH_HOST (server hostname/IP) and SSH_USER in GitHub secrets
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add server to known hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy Mage-OS Demo
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          set -e  # Exit on any error
+
+          cd demo.mage-os.org
+
+          composer create-project --no-install --repository-url=https://repo.mage-os.org/ mage-os/project-community-edition temp
+          mv temp/composer.json .
+          composer update
+          rm -rf .htaccess htdocs temp
+          ln -s pub htdocs
+
+          bin/magento setup:install \
+              --db-host=${{ secrets.DB_HOST }} \
+              --db-name=${{ secrets.DB_NAME }} \
+              --db-user=${{ secrets.DB_USER }} \
+              --db-password=${{ secrets.DB_PASS }} \
+              --base-url=https://demo.mage-os.org/ \
+              --base-url-secure=https://demo.mage-os.org/ \
+              --backend-frontname=${{ secrets.BACKEND_FRONTNAME }} \
+              --use-secure=1 \
+              --use-secure-admin=1 \
+              --use-rewrites=1 \
+              --session-save=redis \
+              --session-save-redis-host=${{ secrets.SESSION_REDIS_HOST }} \
+              --session-save-redis-port=${{ secrets.SESSION_REDIS_PORT }} \
+              --session-save-redis-db=${{ secrets.SESSION_REDIS_DB }} \
+              --cache-backend=redis \
+              --cache-backend-redis-server=${{ secrets.CACHE_REDIS_HOST }} \
+              --cache-backend-redis-port=${{ secrets.CACHE_REDIS_PORT }} \
+              --cache-backend-redis-db=${{ secrets.CACHE_REDIS_DB }} \
+              --page-cache=redis \
+              --page-cache-redis-server=${{ secrets.PAGECACHE_REDIS_HOST }} \
+              --page-cache-redis-port=${{ secrets.PAGECACHE_REDIS_PORT }} \
+              --page-cache-redis-db=${{ secrets.PAGECACHE_REDIS_DB }} \
+              --admin-firstname=Admin \
+              --admin-lastname=Mage-OS \
+              --admin-email='${{ secrets.ADMIN_EMAIL }}' \
+              --admin-user=${{ secrets.ADMIN_USER }} \
+              --admin-password=${{ secrets.ADMIN_PASS }} \
+              --language=en_US \
+              --currency=USD \
+              --timezone='Europe/Rome' \
+              --opensearch-host=${{ secrets.OPENSEARCH_HOST }} \
+              --opensearch-port=${{ secrets.OPENSEARCH_PORT }} \
+              --cleanup-database \
+              --use-sample-data
+
+          bin/magento sampledata:deploy
+          bin/magento module:disable Magento_TwoFactorAuth
+          bin/magento setup:upgrade
+          bin/magento deploy:mode:set production
+          bin/magento indexer:reindex
+          bin/magento cache:flush
+
+          echo "Mage-OS demo deployment completed successfully"
+        EOF
