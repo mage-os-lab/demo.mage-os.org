@@ -61,10 +61,19 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           set -e  # Exit on any error
 
+          # Drop all tables
           mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -sN -e "SHOW TABLES;" 2>/dev/null | while read table; do
             if [ ! -z "$table" ]; then
               echo "Dropping table: $table"
               mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SET FOREIGN_KEY_CHECKS = 0; DROP TABLE IF EXISTS \`$table\`;" 2>/dev/null
+            fi
+          done
+
+          # Drop all views
+          mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -sN -e "SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA = '${{ secrets.DB_NAME }}';" 2>/dev/null | while read view; do
+            if [ ! -z "$view" ]; then
+              echo "Dropping view: $view"
+              mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "DROP VIEW IF EXISTS \`$view\`;" 2>/dev/null
             fi
           done
 
