@@ -92,6 +92,8 @@ jobs:
 
           cd demo.mage-os.org
 
+          bin/magento sampledata:deploy
+
           bin/magento setup:install \
               --db-host=${{ secrets.DB_HOST }} \
               --db-name=${{ secrets.DB_NAME }} \
@@ -162,7 +164,6 @@ jobs:
 
           cd demo.mage-os.org
 
-          bin/magento sampledata:deploy
           bin/magento module:disable Magento_TwoFactorAuth
           bin/magento setup:upgrade
           bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application 2
