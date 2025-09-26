@@ -61,17 +61,12 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           set -e  # Exit on any error
 
-          cd demo.mage-os.org
-
-          # Get list of tables and drop them one by one
-          mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SET FOREIGN_KEY_CHECKS = 0;"
-
-          for table in $(mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SHOW TABLES;" | grep -v Tables_in_); do
-            echo "Dropping table: $table"
-            mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "DROP TABLE IF EXISTS \`$table\`;"
+          mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -sN -e "SHOW TABLES;" 2>/dev/null | while read table; do
+            if [ ! -z "$table" ]; then
+              echo "Dropping table: $table"
+              mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SET FOREIGN_KEY_CHECKS = 0; DROP TABLE IF EXISTS \`$table\`;" 2>/dev/null
+            fi
           done
-
-          mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SET FOREIGN_KEY_CHECKS = 1;"
 
           echo "Database cleaned successfully"
         EOF
