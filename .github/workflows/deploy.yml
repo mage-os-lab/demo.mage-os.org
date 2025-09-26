@@ -63,7 +63,15 @@ jobs:
 
           cd demo.mage-os.org
 
-          mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SET FOREIGN_KEY_CHECKS = 0; SET @tables = NULL; SELECT GROUP_CONCAT(CONCAT('DROP TABLE IF EXISTS \`', table_name, '\`')) INTO @tables FROM information_schema.tables WHERE table_schema = '${{ secrets.DB_NAME }}'; SET @tables = IFNULL(@tables, 'SELECT 1'); PREPARE stmt FROM @tables; EXECUTE stmt; DEALLOCATE PREPARE stmt; SET FOREIGN_KEY_CHECKS = 1;"
+          # Get list of tables and drop them one by one
+          mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SET FOREIGN_KEY_CHECKS = 0;"
+
+          for table in $(mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SHOW TABLES;" | grep -v Tables_in_); do
+            echo "Dropping table: $table"
+            mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "DROP TABLE IF EXISTS \`$table\`;"
+          done
+
+          mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "SET FOREIGN_KEY_CHECKS = 1;"
 
           echo "Database cleaned successfully"
         EOF
