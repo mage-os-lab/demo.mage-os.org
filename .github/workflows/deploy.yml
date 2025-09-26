@@ -33,7 +33,7 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           cd demo.mage-os.org
 
-          cat > htdocs/index.html << 'HTML'
+          cat > htdocs/index.html << 'HTMLEND'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,7 +63,7 @@ jobs:
     </script>
 </body>
 </html>
-HTML
+HTMLEND
 
           echo "Maintenance page deployed"
         EOF
