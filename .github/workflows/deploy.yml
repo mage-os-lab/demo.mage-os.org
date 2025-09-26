@@ -1,4 +1,4 @@
-name: Deploy to Server
+name: Reset Mage-OS Demo Environment
 
 # SSH Setup Instructions:
 # 1. Generate SSH key pair: ssh-keygen -t ed25519 -C "github-actions"
@@ -88,7 +88,7 @@ jobs:
           echo "Database cleaned successfully"
         EOF
 
-    - name: Install Mage-OS
+    - name: Deploy Sample Data and Install Mage-OS
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           set -e  # Exit on any error
@@ -160,7 +160,7 @@ jobs:
           echo "CORS configuration added successfully"
         EOF
 
-    - name: Configure Sample Data and Production Settings
+    - name: Finalize Installation and Enable Production Mode
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           set -e  # Exit on any error
