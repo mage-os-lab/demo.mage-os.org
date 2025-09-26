@@ -37,7 +37,8 @@ jobs:
 
           composer create-project --no-install --repository-url=https://repo.mage-os.org/ mage-os/project-community-edition temp
           mv temp/composer.json .
-          composer update
+          rm composer.lock
+          composer install
           composer require graycore/magento2-cors
           rm -rf .htaccess htdocs temp
           ln -s pub htdocs
