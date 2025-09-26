@@ -28,7 +28,7 @@ jobs:
       run: |
         ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Preparation - Environment Setup
+    - name: Prepare Fresh Environment
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           set -e  # Exit on any error
@@ -37,7 +37,6 @@ jobs:
 
           composer create-project --no-install --repository-url=https://repo.mage-os.org/ mage-os/project-community-edition temp
           mv temp/composer.json .
-          mv app/etc/env.php env.php
           rm -rf composer.lock vendor dev generated var pub app
           composer install
           composer require graycore/magento2-cors
@@ -47,7 +46,7 @@ jobs:
           echo "Environment preparation completed successfully"
         EOF
 
-    - name: Installation - Mage-OS Setup
+    - name: Install Mage-OS
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           set -e  # Exit on any error
@@ -93,42 +92,24 @@ jobs:
           echo "Mage-OS installation completed successfully"
         EOF
 
-    - name: CORS Configuration - GraphQL Setup
+    - name: Configure Sample Data and Production Settings
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           set -e  # Exit on any error
 
           cd demo.mage-os.org
 
-          # Add CORS configuration to app/etc/env.php
-          php -r "
-            \$envFile = 'app/etc/env.php';
-            \$config = include \$envFile;
-            \$config['system']['default']['web']['graphql'] = [
-                'cors_max_age' => 86400,
-                'cors_allow_credentials' => 1,
-                'cors_allowed_methods' => 'POST, OPTIONS, GET',
-                'cors_expose_headers' => 'X-Magento-Cache-Id',
-                'cors_allowed_headers' => 'Content-Currency, Store, X-Magento-Cache-Id, X-Captcha, Content-Type, Authorization, DNT, TE',
-                'cors_allowed_origins' => 'https://demo.daff.io'
-            ];
-            file_put_contents(\$envFile, '<?php' . PHP_EOL . 'return ' . var_export(\$config, true) . ';' . PHP_EOL);
-          "
-
-          echo "CORS configuration added successfully"
-        EOF
-
-    - name: Post-Installation - Configuration and Finalization
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          set -e  # Exit on any error
-
-          cd demo.mage-os.org
-
+          bin/magento sampledata:reset
           bin/magento sampledata:deploy
           bin/magento module:disable Magento_TwoFactorAuth
           bin/magento setup:upgrade
           bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application 2
+          bin/magento config:set web/graphql/cors_max_age 86400
+          bin/magento config:set web/graphql/cors_allow_credentials 1
+          bin/magento config:set web/graphql/cors_allowed_methods "POST, OPTIONS, GET"
+          bin/magento config:set web/graphql/cors_expose_headers "X-Magento-Cache-Id"
+          bin/magento config:set web/graphql/cors_allowed_headers "Content-Currency, Store, X-Magento-Cache-Id, X-Captcha, Content-Type, Authorization, DNT, TE"
+          bin/magento config:set web/graphql/cors_allowed_origins "https://demo.daff.io"
           bin/magento deploy:mode:set production
           bin/magento indexer:reindex
           bin/magento cache:flush
