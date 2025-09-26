@@ -45,11 +45,11 @@ jobs:
 
           cd demo.mage-os.org
 
-          composer create-project --no-install --repository-url=https://repo.mage-os.org/ mage-os/project-community-edition temp
+          composer create-project --no-install --no-progress --repository-url=https://repo.mage-os.org/ mage-os/project-community-edition temp
           mv temp/composer.json .
           rm -rf composer.lock vendor dev generated var pub app
-          composer install
-          composer require graycore/magento2-cors
+          composer install --no-progress
+          composer require --no-progress graycore/magento2-cors
           rm -rf .htaccess htdocs temp
           ln -s pub htdocs
 
