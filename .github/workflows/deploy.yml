@@ -121,6 +121,7 @@ jobs:
               --timezone='Europe/Rome' \
               --opensearch-host=${{ secrets.OPENSEARCH_HOST }} \
               --opensearch-port=${{ secrets.OPENSEARCH_PORT }} \
+              --use-sample-data
 
           echo "Mage-OS installation completed successfully"
         EOF
