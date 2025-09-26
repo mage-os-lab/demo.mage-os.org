@@ -46,6 +46,29 @@ jobs:
           echo "Environment preparation completed successfully"
         EOF
 
+    - name: Clean Database
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          set -e  # Exit on any error
+
+          cd demo.mage-os.org
+
+          mysql -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} ${{ secrets.DB_NAME }} -e "
+            SET FOREIGN_KEY_CHECKS = 0;
+            SET @tables = NULL;
+            SELECT GROUP_CONCAT('`', table_schema, '`.`', table_name, '`') INTO @tables
+            FROM information_schema.tables
+            WHERE table_schema = '${{ secrets.DB_NAME }}';
+            SET @tables = CONCAT('DROP TABLE ', @tables);
+            PREPARE stmt FROM @tables;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+            SET FOREIGN_KEY_CHECKS = 1;
+          "
+
+          echo "Database cleaned successfully"
+        EOF
+
     - name: Install Mage-OS
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
@@ -86,8 +109,6 @@ jobs:
               --timezone='Europe/Rome' \
               --opensearch-host=${{ secrets.OPENSEARCH_HOST }} \
               --opensearch-port=${{ secrets.OPENSEARCH_PORT }} \
-              --cleanup-database \
-              --use-sample-data
 
           echo "Mage-OS installation completed successfully"
         EOF
@@ -99,7 +120,6 @@ jobs:
 
           cd demo.mage-os.org
 
-          bin/magento sampledata:reset
           bin/magento sampledata:deploy
           bin/magento module:disable Magento_TwoFactorAuth
           bin/magento setup:upgrade
