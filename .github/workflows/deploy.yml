@@ -31,6 +31,9 @@ jobs:
     - name: Deploy Maintenance Page
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          # Clear Varnish cache before deployment
+          varnishadm ban req.url "~" ".*" || echo "Varnish cache clear failed, continuing..."
+
           cd demo.mage-os.org
 
           rm htdocs
@@ -173,6 +176,9 @@ jobs:
 
           rm -rf htdocs
           ln -s pub htdocs
+
+          # Clear Varnish cache after deployment
+          varnishadm ban req.url "~" ".*" || echo "Varnish cache clear failed, continuing..."
 
           echo "Mage-OS demo deployment completed successfully"
         EOF
