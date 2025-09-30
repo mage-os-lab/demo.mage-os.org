@@ -58,7 +58,7 @@ jobs:
           mv temp/composer.json .
           rm -rf composer.lock vendor dev generated var pub app
           composer install --no-progress
-          composer require --no-progress graycore/magento2-cors
+          composer require --no-progress graycore/magento2-cors mage-os/module-theme-optimization
           rm -rf .htaccess temp
 
           echo "Environment preparation completed successfully"
@@ -169,6 +169,8 @@ jobs:
 
           bin/magento module:disable Magento_TwoFactorAuth
           bin/magento setup:upgrade
+          n98-magerun2 design:demo-notice
+          bin/magento config:set design/search_engine_robots/default_robots "NOINDEX,NOFOLLOW"
           bin/magento config:set --scope=default --scope-code=0 system/full_page_cache/caching_application 2
           bin/magento deploy:mode:set production
           bin/magento indexer:reindex
