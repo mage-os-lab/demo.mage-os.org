@@ -58,7 +58,7 @@ jobs:
           mv temp/composer.json .
           rm -rf composer.lock vendor dev generated var pub app
           composer install --no-progress
-          composer require --no-progress graycore/magento2-cors mage-os/module-theme-optimization
+          composer require --no-progress graycore/magento2-cors
           rm -rf .htaccess temp
 
           echo "Environment preparation completed successfully"
